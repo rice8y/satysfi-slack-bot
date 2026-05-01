@@ -1,9 +1,4 @@
-type output_format = Pdf | Png
-
-type render_request = {
-  format : output_format;
-  code : string;
-}
+type render_request = { code : string }
 
 type t =
   | Render of render_request
@@ -16,14 +11,12 @@ type error =
   | Missing_command
   | Missing_code_block
   | Unclosed_code_block
-  | Invalid_format of string
   | Unrecognized_flag of string
 
 let string_of_error = function
   | Missing_command -> "missing command"
   | Missing_code_block -> "missing SATySFi code block"
   | Unclosed_code_block -> "unclosed code block"
-  | Invalid_format format -> "invalid render format: " ^ format
   | Unrecognized_flag flag -> "unrecognized render flag: " ^ flag
 
 let is_space = function ' ' | '\t' | '\r' | '\n' -> true | _ -> false
@@ -110,28 +103,11 @@ let find_code_block input =
   in
   find_open 0
 
-let parse_format = function
-  | "pdf" -> Ok Pdf
-  | "png" -> Ok Png
-  | other -> Error (Invalid_format other)
-
-let parse_flag request flag =
-  match String.index_opt flag '=' with
-  | None -> Error (Unrecognized_flag flag)
-  | Some index -> (
-      let key = String.sub flag 0 index in
-      let value = String.sub flag (index + 1) (String.length flag - index - 1) in
-      match key with
-      | "format" | "fmt" ->
-          parse_format value |> Result.map (fun format -> { request with format })
-      | _ -> Error (Unrecognized_flag flag))
-
 let parse_render args =
   match find_code_block args with
   | Error error -> Error error
   | Ok None -> Error Missing_code_block
   | Ok (Some (before, code)) ->
-      let request = ref { format = Png; code } in
       let flags =
         before |> trim
         |> String.split_on_char ' '
@@ -139,16 +115,9 @@ let parse_render args =
         |> List.concat_map (String.split_on_char '\t')
         |> List.filter (fun s -> s <> "")
       in
-      let rec apply = function
-        | [] -> Ok (Render !request)
-        | flag :: rest -> (
-            match parse_flag !request flag with
-            | Ok next ->
-                request := next;
-                apply rest
-            | Error error -> Error error)
-      in
-      apply flags
+      (match flags with
+      | [] -> Ok (Render { code })
+      | flag :: _ -> Error (Unrecognized_flag flag))
 
 let parse input =
   let command, args = input |> strip_leading_mentions |> split_first_word in

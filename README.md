@@ -9,7 +9,7 @@ Use it in Slack as:
 ```
 
 ````text
-@satysfi-bot r fmt=pdf ```@require: stdja
+@satysfi-bot r ```@require: stdja
 
 document (|
   title = {Example};
@@ -29,14 +29,13 @@ files using Slack's current external upload flow.
 
 ## Commands
 
-- `@satysfi-bot render [format=png|pdf] <code block>`
-- `@satysfi-bot r [fmt=png|pdf] <code block>`
+- `@satysfi-bot render <code block>`
+- `@satysfi-bot r <code block>`
 - `@satysfi-bot help [topic]`
 - `@satysfi-bot version`
 - `@satysfi-bot source`
 
-`png` is the default render format for Slack-friendly previews. `pdf` keeps the
-compiled SATySFi PDF as the primary artifact.
+Rendered output is uploaded as PNG page images.
 
 Inline snippets are wrapped in a minimal `stdja` document. If the code already
 looks like a full SATySFi document, it is passed through as-is.

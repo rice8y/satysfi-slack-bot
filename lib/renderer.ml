@@ -67,8 +67,7 @@ let wrap_inline source =
   ^ "\n  }\n"
   ^ ">\n"
 
-let source_for_mode mode source =
-  let _ = mode in
+let source_for_code source =
   if looks_like_document source then source else wrap_inline source
 
 let satysfi_args config pdf saty =
@@ -103,7 +102,7 @@ let render ?(imports = []) (config : Config.t) (request : Command.render_request
   let saty = Filename.concat dir "input.saty" in
   let pdf = Filename.concat dir "output.pdf" in
   write_imports dir imports;
-  write_file saty (source_for_mode request.format request.code);
+  write_file saty (source_for_code request.code);
   let satysfi =
     Process.run_capture ~cwd:dir ~timeout:config.render_timeout_secs config.satysfi_command
       (satysfi_args config pdf saty)
@@ -117,13 +116,6 @@ let render ?(imports = []) (config : Config.t) (request : Command.render_request
       if structured = "SATySFi failed without a structured diagnostic." then
         Error (Code_block.truncate 3800 msg)
       else Error structured
-  | Ok _ when request.format = Command.Pdf ->
-      Ok
-        {
-          artifacts = [ { path = pdf; filename = "satysfi-output.pdf"; content_type = "application/pdf" } ];
-          diagnostics = satysfi.stderr;
-          more_pages = 0;
-        }
   | Ok _ ->
       let ppm =
         Process.run_capture ~timeout:config.render_timeout_secs config.pdftoppm_command

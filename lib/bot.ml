@@ -24,11 +24,11 @@ let target_of_event event =
 
 let help_text =
   "Commands:\n\
-   - `@satysfi-bot render [format=png|pdf] <code block>`\n\
-   - `@satysfi-bot r [fmt=png|pdf] <code block>`\n\
+   - `@satysfi-bot render <code block>`\n\
+   - `@satysfi-bot r <code block>`\n\
    - `@satysfi-bot version`\n\
    - `@satysfi-bot source`\n\n\
-   Inline snippets are wrapped in a small SATySFi document. Full `.saty` documents are passed through."
+   SATySFi output is uploaded as PNG page images. Inline snippets are wrapped in a small SATySFi document. Full `.saty` documents are passed through."
 
 let log_error context = function
   | Ok () -> ()
@@ -124,6 +124,7 @@ let handle_command state target files text =
         (Printf.sprintf "Unknown command `%s`. Use `@satysfi-bot help`." name)
       |> log_error "chat.postMessage"
   | Ok (Command.Render request) -> (
+      Log.debug "render request code_bytes=%d" (String.length request.code);
       Mutex.lock state.lock;
       let rendered =
         Fun.protect

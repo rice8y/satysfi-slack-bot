@@ -74,29 +74,16 @@ let executable dir name contents =
   Unix.chmod path 0o755;
   path
 
-let test_pdf_render () =
-  with_temp_dir (fun dir ->
-      let satysfi = executable dir "satysfi-ok" fake_satysfi_success in
-      let pdftoppm = executable dir "pdftoppm-unused" fake_pdftoppm in
-      let config = config ~work_dir:dir ~satysfi_command:satysfi ~pdftoppm_command:pdftoppm in
-      match Renderer.render config Command.{ format = Pdf; code = "+p {hello}" } with
-      | Ok { Renderer.artifacts = [ artifact ]; diagnostics; more_pages = 0 } ->
-          require "pdf artifact has expected content type"
-            (artifact.content_type = "application/pdf");
-          require "pdf artifact was created" (Sys.file_exists artifact.path);
-          require "satysfi stderr is preserved" (String.contains diagnostics 'w')
-      | Ok _ -> failwith "expected exactly one PDF artifact"
-      | Error message -> failwith ("unexpected render failure: " ^ message))
-
 let test_png_render_collects_pages () =
   with_temp_dir (fun dir ->
       let satysfi = executable dir "satysfi-ok" fake_satysfi_success in
       let pdftoppm = executable dir "pdftoppm-ok" fake_pdftoppm in
       let config = config ~work_dir:dir ~satysfi_command:satysfi ~pdftoppm_command:pdftoppm in
-      match Renderer.render config Command.{ format = Png; code = "+p {hello}" } with
-      | Ok { Renderer.artifacts; more_pages; _ } ->
+      match Renderer.render config Command.{ code = "+p {hello}" } with
+      | Ok { Renderer.artifacts; diagnostics; more_pages } ->
           require "max_pages limits uploaded PNG artifacts" (List.length artifacts = 2);
           require "extra pages are counted" (more_pages = 1);
+          require "satysfi stderr is preserved" (String.contains diagnostics 'w');
           List.iter
             (fun (artifact : Renderer.artifact) ->
               require "png content type" (artifact.content_type = "image/png"))
@@ -108,7 +95,7 @@ let test_structured_failure () =
       let satysfi = executable dir "satysfi-fail" fake_satysfi_failure in
       let pdftoppm = executable dir "pdftoppm-unused" fake_pdftoppm in
       let config = config ~work_dir:dir ~satysfi_command:satysfi ~pdftoppm_command:pdftoppm in
-      match Renderer.render config Command.{ format = Png; code = "+p {bad}" } with
+      match Renderer.render config Command.{ code = "+p {bad}" } with
       | Error message ->
           require "structured diagnostic includes phase" (String.contains message 'P');
           require "structured diagnostic includes source location" (String.contains message '2')
@@ -137,14 +124,13 @@ grep -q "let-inline" "$dir/my-lib.satyh" || exit 10
 printf "%s\n" "%PDF-1.7" > "$out"
 |}
       in
-      let pdftoppm = executable dir "pdftoppm-unused" fake_pdftoppm in
+      let pdftoppm = executable dir "pdftoppm-ok" fake_pdftoppm in
       let config = config ~work_dir:dir ~satysfi_command:satysfi ~pdftoppm_command:pdftoppm in
       let imports =
         [ Renderer.{ filename = "my-lib.satyh"; contents = "let-inline ctx \\foo = {foo};" } ]
       in
-      match Renderer.render ~imports config Command.{ format = Pdf; code = "@import: my-lib" } with
-      | Ok { Renderer.artifacts = [ _ ]; _ } -> ()
-      | Ok _ -> failwith "expected one PDF artifact"
+      match Renderer.render ~imports config Command.{ code = "@import: my-lib" } with
+      | Ok { Renderer.artifacts; _ } -> require "expected PNG artifacts" (artifacts <> [])
       | Error message -> failwith ("unexpected render failure: " ^ message))
 
 let test_import_directive_is_not_wrapped_as_inline_text () =
@@ -168,15 +154,13 @@ head -n 1 "$input" | grep -q '^@import: my-lib$' || exit 11
 printf "%s\n" "%PDF-1.7" > "$out"
 |}
       in
-      let pdftoppm = executable dir "pdftoppm-unused" fake_pdftoppm in
+      let pdftoppm = executable dir "pdftoppm-ok" fake_pdftoppm in
       let config = config ~work_dir:dir ~satysfi_command:satysfi ~pdftoppm_command:pdftoppm in
-      match Renderer.render config Command.{ format = Pdf; code = "@import: my-lib" } with
-      | Ok { Renderer.artifacts = [ _ ]; _ } -> ()
-      | Ok _ -> failwith "expected one PDF artifact"
+      match Renderer.render config Command.{ code = "@import: my-lib" } with
+      | Ok { Renderer.artifacts; _ } -> require "expected PNG artifacts" (artifacts <> [])
       | Error message -> failwith ("unexpected render failure: " ^ message))
 
 let () =
-  test_pdf_render ();
   test_png_render_collects_pages ();
   test_structured_failure ();
   test_import_files_are_written_next_to_input ();

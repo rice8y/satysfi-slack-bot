@@ -43,16 +43,45 @@ let test_slack_request_verification () =
 let test_command_parsing () =
   equal_result "missing command" (Error Command.Missing_command) (Command.parse "  ");
   equal_result "mentions are stripped"
-    (Ok (Command.Render { format = Command.Png; code = "hello" }))
+    (Ok (Command.Render { code = "hello" }))
     (Command.parse "<@U123> render `hello`");
   equal_result "multiple mentions and alias"
-    (Ok (Command.Render { format = Command.Pdf; code = "document" }))
-    (Command.parse "<@U123> <@U456> r fmt=pdf ```document```");
+    (Ok (Command.Render { code = "document" }))
+    (Command.parse "<@U123> <@U456> r ```document```");
+  equal_result "render rejects removed format flag"
+    (Error (Command.Unrecognized_flag "format=pdf"))
+    (Command.parse "<@U123> render format=pdf ```document```");
+  equal_result "render full document before fenced block"
+    (Ok
+       (Command.Render
+          {
+            code =
+              "\n@require: stdja\n\n\
+               document (|\n\
+               \  title = {Example};\n\
+               \  author = {};\n\
+               \  show-title = false;\n\
+               \  show-toc = false;\n\
+               |) '<\n\
+               \  +p {Full document}\n\
+               >\n";
+          }))
+    (Command.parse
+       "<@U123> render ```\n\
+        @require: stdja\n\n\
+        document (|\n\
+        \  title = {Example};\n\
+        \  author = {};\n\
+        \  show-title = false;\n\
+        \  show-toc = false;\n\
+        |) '<\n\
+        \  +p {Full document}\n\
+        >\n\
+        ```");
   equal_result "command may be separated from block by newline"
     (Ok
        (Command.Render
           {
-            format = Command.Png;
             code =
               "\n@require: stdjabook\n\n\
                document (|\n\
@@ -83,7 +112,6 @@ let test_command_parsing () =
     (Ok
        (Command.Render
           {
-            format = Command.Png;
             code = "@require: stdjabook\n|) '<\n  +section{はじめに}<\n  >\n>";
           }))
     (Command.parse
@@ -96,7 +124,6 @@ let test_command_parsing () =
     (Ok
        (Command.Render
           {
-            format = Command.Png;
             code =
               "\n\
                document (| title = {T}; author = {}; show-title = false; show-toc = false; |) '<\n\
@@ -119,16 +146,18 @@ let test_command_parsing () =
         >\n\
         ```");
   equal_result "keeps prose after code outside parsed source"
-    (Ok (Command.Render { format = Command.Png; code = "let-inline ctx \\hello;" }))
+    (Ok (Command.Render { code = "let-inline ctx \\hello;" }))
     (Command.parse "render `let-inline ctx \\hello;` can anyone check this?");
   equal_result "help topic" (Ok (Command.Help (Some "render"))) (Command.parse "help render");
   equal_result "version" (Ok Command.Version) (Command.parse "<@BOT> version");
   equal_result "unknown command is explicit" (Ok (Command.Unknown "deploy"))
     (Command.parse "deploy now");
   equal_result "missing code block" (Error Command.Missing_code_block)
-    (Command.parse "render fmt=png");
-  equal_result "invalid format" (Error (Command.Invalid_format "jpeg"))
+    (Command.parse "render");
+  equal_result "removed format flag" (Error (Command.Unrecognized_flag "format=jpeg"))
     (Command.parse "render format=jpeg `hello`");
+  equal_result "removed fmt flag" (Error (Command.Unrecognized_flag "fmt=png"))
+    (Command.parse "render fmt=png `hello`");
   equal_result "unrecognized flag" (Error (Command.Unrecognized_flag "theme=dark"))
     (Command.parse "render theme=dark `hello`")
 

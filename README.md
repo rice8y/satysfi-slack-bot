@@ -4,8 +4,11 @@ An OCaml Slack bot that renders SATySFi code when mentioned.
 
 Use it in Slack as:
 
-````text
+```text
 @satysfi-bot render `hello, world!`
+```
+
+````text
 @satysfi-bot r fmt=pdf ```@require: stdja
 
 document (|

@@ -1,0 +1,16 @@
+opam-version: "2.0"
+synopsis: "Slack bot that renders SATySFi snippets"
+description: "A small OCaml Slack Events API bot that renders SATySFi code to PNG files."
+maintainer: "Eito Yoneyama"
+authors: ["Eito Yoneyama"]
+license: "BSD-3-Clause"
+depends: [
+  "ocaml" {>= "4.14" & < "5.0"}
+  "dune" {>= "3.11"}
+  "yojson"
+  "satysfi"
+  "satysfi-dist"
+]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+]

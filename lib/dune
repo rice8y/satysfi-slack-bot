@@ -1,0 +1,3 @@
+(library
+ (name satysfi_slack_bot)
+ (libraries unix threads str yojson))

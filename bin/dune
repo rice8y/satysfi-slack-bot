@@ -1,0 +1,4 @@
+(executable
+ (public_name satysfi-slack-bot)
+ (name main)
+ (libraries satysfi_slack_bot))

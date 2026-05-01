@@ -6,6 +6,7 @@ type t = {
   source_url : string;
   work_dir : string;
   satysfi_command : string;
+  satysfi_config_paths : string option;
   pdftoppm_command : string;
   curl_command : string;
   max_body_bytes : int;
@@ -63,6 +64,7 @@ let load () =
       getenv_default "SATYSFI_BOT_WORK_DIR"
         (Filename.concat (Filename.get_temp_dir_name ()) "satysfi-slack-bot");
     satysfi_command = getenv_default "SATYSFI_BOT_COMMAND" "satysfi";
+    satysfi_config_paths = Sys.getenv_opt "SATYSFI_BOT_CONFIG_PATHS";
     pdftoppm_command = getenv_default "SATYSFI_BOT_PDFTOPPM_COMMAND" "pdftoppm";
     curl_command = getenv_default "SATYSFI_BOT_CURL_COMMAND" "curl";
     max_body_bytes = getenv_int "SATYSFI_BOT_MAX_BODY_BYTES" (1024 * 1024);

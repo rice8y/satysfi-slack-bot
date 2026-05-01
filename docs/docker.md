@@ -20,6 +20,7 @@ per-request directories by invoking the `satysfi` executable.
 
 - `BIND_ADDR`, default `0.0.0.0:3000`
 - `SATYSFI_BOT_COMMAND`, default `satysfi`
+- `SATYSFI_BOT_CONFIG_PATHS`, optional colon-separated paths passed to `satysfi -C`
 - `SATYSFI_BOT_PDFTOPPM_COMMAND`, default `pdftoppm`
 - `SATYSFI_BOT_CURL_COMMAND`, default `curl`
 - `SATYSFI_BOT_WORK_DIR`, default `/tmp/satysfi-slack-bot`

@@ -21,12 +21,36 @@ let read_all fd =
   loop ();
   Buffer.contents buf
 
-let run_capture ?input ?cwd:_ ?(timeout = 60.) command args =
+let run_capture ?input ?cwd ?(timeout = 60.) command args =
   let stdin_r, stdin_w = Unix.pipe () in
   let stdout_r, stdout_w = Unix.pipe () in
   let stderr_r, stderr_w = Unix.pipe () in
   let argv = Array.of_list (command :: args) in
-  let pid = Unix.create_process command argv stdin_r stdout_w stderr_w in
+  let pid =
+    match cwd with
+    | None -> Unix.create_process command argv stdin_r stdout_w stderr_w
+    | Some cwd ->
+        let fork_pid = Unix.fork () in
+        if fork_pid = 0 then (
+          (try Unix.chdir cwd
+           with exn ->
+             Printf.eprintf "chdir failed: %s\n%!" (Printexc.to_string exn);
+             exit 127);
+          Unix.dup2 stdin_r Unix.stdin;
+          Unix.dup2 stdout_w Unix.stdout;
+          Unix.dup2 stderr_w Unix.stderr;
+          Unix.close stdin_r;
+          Unix.close stdin_w;
+          Unix.close stdout_r;
+          Unix.close stdout_w;
+          Unix.close stderr_r;
+          Unix.close stderr_w;
+          (try Unix.execvp command argv
+           with exn ->
+             Printf.eprintf "exec failed: %s\n%!" (Printexc.to_string exn);
+             exit 127));
+        fork_pid
+  in
   Unix.close stdin_r;
   Unix.close stdout_w;
   Unix.close stderr_w;

@@ -25,6 +25,7 @@ let config ~work_dir ~satysfi_command ~pdftoppm_command =
       source_url = "https://example.invalid/source";
       work_dir;
       satysfi_command;
+      satysfi_config_paths = None;
       pdftoppm_command;
       curl_command = "curl";
       max_body_bytes = 1024 * 1024;

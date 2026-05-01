@@ -71,6 +71,14 @@ let source_for_mode mode source =
   let _ = mode in
   if looks_like_document source then source else wrap_inline source
 
+let satysfi_args config pdf saty =
+  let config_args =
+    match config.Config.satysfi_config_paths with
+    | None | Some "" -> []
+    | Some paths -> [ "-C"; paths ]
+  in
+  config_args @ [ "--full-path"; "-o"; pdf; saty ]
+
 let collect_pngs max_pages dir =
   let files =
     Sys.readdir dir |> Array.to_list
@@ -97,8 +105,8 @@ let render ?(imports = []) (config : Config.t) (request : Command.render_request
   write_imports dir imports;
   write_file saty (source_for_mode request.format request.code);
   let satysfi =
-    Process.run_capture ~timeout:config.render_timeout_secs config.satysfi_command
-      [ "--full-path"; "-o"; pdf; saty ]
+    Process.run_capture ~cwd:dir ~timeout:config.render_timeout_secs config.satysfi_command
+      (satysfi_args config pdf saty)
   in
   match Process.ensure_success ~what:"satysfi" satysfi with
   | Error msg ->
